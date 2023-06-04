@@ -71,10 +71,10 @@ def randomize():
     pdf.set_font('simsun', '', 12)
 
     # Add the content to the PDF
-    pdf.cell(0, 10, '随机分组结果', ln=True, align='C')
+    pdf.cell(0, 10, '隨機分組結果', ln=True, align='C')
     pdf.ln(10)
     for i, team in enumerate(teams, start=1):
-        pdf.cell(0, 10, f'团队 {i}', ln=True)
+        pdf.cell(0, 10, f'團隊-{i}', ln=True)
         for member in team:
             pdf.cell(0, 8, f'{member["Name"]} ({member["Gender"]})', ln=True)
         pdf.ln(5)
