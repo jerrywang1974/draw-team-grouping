@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Random Team Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            margin: 20px;
+        }
+
+        .result-wrapper {
+            margin-top: 20px;
+        }
+
+        .team {
+            margin-bottom: 20px;
+        }
+
+        .team-title {
+            font-weight: bold;
+        }
+
+        .member-list {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .member {
+            margin-bottom: 5px;
+        }
+
+        .download-links {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="result-wrapper">
+            <h1>Random Team Generator</h1>
+            {% for team in teams %}
+                <div class="team">
+                    <p class="team-title">Team {{ loop.index }}</p>
+                    <ul class="member-list">
+                        {% for member in team %}
+                            <li class="member">{{ member["Name"] }} ({{ member["Gender"] }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="download-links">
+            <a href="/download_csv?csv_file_path={{ csv_file_path }}">Download as CSV</a>
+            <a href="/download_pdf?pdf_file_path={{ pdf_file_path }}">Download as PDF</a>
+        </div>
+    </div>
+</body>
+</html>
