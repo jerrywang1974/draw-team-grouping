@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, make_response, send_file
 from io import StringIO, BytesIO
 from fpdf import FPDF
 import tempfile
+import pandas as pd
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -13,93 +14,114 @@ def index():
 
 @app.route('/randomize', methods=['POST'])
 def randomize():
-    csv_file = request.files['csv_file']
+    #csv_file = request.files['csv_file']
+    xls_file = request.files['csv_file']
     num_teams = int(request.form['num_teams'])
     force_female_balance = 'force_female_balance' in request.form
 
     # Read the CSV file and parse the data
     data = []
-    reader = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
-    for row in reader:
+    #reader = csv.DictReader(StringIO(csv_file.read().decode('utf-8')))
+    reader = pd.read_excel(xls_file)
+    
+    for row in reader.values.tolist():
+        #for row in reader:
         data.append(row)
-
+    #print(data)
+    
     # Randomly shuffle the data
     random.shuffle(data)
-
+    avg_person=int(len(data)/num_teams)
+    #print(avg_person)
     # Divide members into teams
     teams = [[] for _ in range(num_teams)]
-
+    #print(teams)
     if force_female_balance:
         # Group female members first to ensure gender balance
-        females = [member for member in data if member['Gender'] == 'Female']
-        males = [member for member in data if member['Gender'] == 'Male']
-
+        females = [member for member in data if (member[2] == 'Female' or member[2] == '女')]
+        males = [member for member in data if (member[2] == 'Male' or member[2] == '男')]
+        #print(females)
+        #print(males)
         while females:
             for team in teams:
+                #print(len(team), ((len(females)+len(males))/num_teams))
+                #print(team)
                 if not females:
                     break
+                #if (len(team) >= avg_person):
+                #    break
                 team.append(females.pop())
-
+        teams.reverse()
         while males:
             for team in teams:
+                #print(len(team), (len(teams)/num_teams))
+                #print(team)
                 if not males:
                     break
+                #if not (len(team) >= avg_person):
+                #    break
                 team.append(males.pop())
     else:
         # Randomly assign members to teams
         for i, member in enumerate(data):
             team_index = i % num_teams
             teams[team_index].append(member)
-
+    #print(teams)
     # Generate the result as a CSV file
     csv_output = StringIO()
     csv_writer = csv.writer(csv_output)
     csv_writer.writerow(['Team', 'Name', 'Gender'])
     for i, team in enumerate(teams, start=1):
         for member in team:
-            csv_writer.writerow([i, member['Name'], member['Gender']])
+            csv_writer.writerow([i, member[1], member[2]])
+    
 
-    # Generate the result as a PDF
-    pdf_output = BytesIO()
-    pdf = FPDF()
-    pdf.add_page()
 
-    # Register the font
-    pdf.add_font('simsun', '', './SimSun.ttf', uni=True)
+    # # Generate the result as a PDF
+    # pdf_output = BytesIO()
+    # pdf = FPDF()
+    # pdf.add_page()
 
-    # Set the font for the PDF
-    pdf.set_font('simsun', '', 12)
+    # # Register the font
+    # pdf.add_font('simsun', '', './SimSun.ttf', uni=True)
 
-    # Add the content to the PDF
-    pdf.cell(0, 10, '隨機分組結果', ln=True, align='C')
-    pdf.ln(10)
-    for i, team in enumerate(teams, start=1):
-        pdf.cell(0, 10, f'團隊-{i}', ln=True)
-        for member in team:
-            pdf.cell(0, 8, f'{member["Name"]} ({member["Gender"]})', ln=True)
-        pdf.ln(5)
+    # # Set the font for the PDF
+    # pdf.set_font('simsun', '', 12)
+
+    # # Add the content to the PDF
+    # pdf.cell(0, 10, '隨機分組結果', ln=True, align='C')
+    # pdf.ln(10)
+    # for i, team in enumerate(teams, start=1):
+    #     pdf.cell(0, 10, f'團隊-{i}', ln=True)
+    #     for member in team:
+    #         pdf.cell(0, 8, f'{member["Name"]} ({member["Gender"]})', ln=True)
+    #     pdf.ln(5)
 
     # Save the CSV to a temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as csv_temp_file:
         csv_temp_file_path = csv_temp_file.name
         csv_temp_file.write(csv_output.getvalue().encode('utf-8'))
+        #csv_temp_file.write(csv_output.getvalue().encode(code_page))
+        
+       
+    # # Save the PDF to a temporary file
+    # with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as pdf_temp_file:
+    #     pdf_temp_file_path = pdf_temp_file.name
+    #     pdf_temp_file.write(pdf_output.getvalue())
 
-    # Save the PDF to a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as pdf_temp_file:
-        pdf_temp_file_path = pdf_temp_file.name
-        pdf_temp_file.write(pdf_output.getvalue())
-
-    return render_template('result.html', teams=teams, csv_file_path=csv_temp_file_path, pdf_file_path=pdf_temp_file_path)
+    #return render_template('result.html', teams=teams, csv_file_path=csv_temp_file_path, pdf_file_path=pdf_temp_file_path)
+    #return render_template('result.html', teams=teams, csv_file_path=csv_temp_file_path)
+    return render_template('result.html', teams=teams, csv_file_path=csv_temp_file_path, pdf_file_path=None)
 
 @app.route('/download_csv')
 def download_csv():
     csv_file_path = request.args.get('csv_file_path')
     return send_file(csv_file_path, as_attachment=True)
 
-@app.route('/download_pdf')
-def download_pdf():
-    pdf_file_path = request.args.get('pdf_file_path')
-    return send_file(pdf_file_path, as_attachment=True)
+# @app.route('/download_pdf')
+# def download_pdf():
+#     pdf_file_path = request.args.get('pdf_file_path')
+#     return send_file(pdf_file_path, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
